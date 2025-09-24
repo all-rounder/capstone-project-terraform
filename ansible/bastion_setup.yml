@@ -1,0 +1,132 @@
+---
+- name: Provision bastion with tools
+  hosts: bastion
+  become: true
+  vars:
+    jenkins_repo_key_url: https://pkg.jenkins.io/debian-stable/jenkins.io.key
+  tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install common packages
+      ansible.builtin.apt:
+        name:
+          - curl
+          - unzip
+          - apt-transport-https
+          - ca-certificates
+          - gnupg
+          - lsb-release
+          - software-properties-common
+        state: present
+        update_cache: yes
+
+    #### Install AWS CLI v2 (official)
+    - name: Download AWS CLI v2 bundle
+      ansible.builtin.get_url:
+        url: https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+        dest: /tmp/awscliv2.zip
+        mode: "0644"
+
+    - name: Unzip AWS CLI
+      ansible.builtin.unarchive:
+        src: /tmp/awscliv2.zip
+        dest: /tmp
+        remote_src: yes
+
+    - name: Install AWS CLI
+      ansible.builtin.command:
+        cmd: /tmp/aws/install -i /usr/local/aws-cli -b /usr/local/bin
+      args:
+        creates: /usr/local/bin/aws
+
+    #### Install Docker (official repo)
+    - name: Add Docker GPG key
+      ansible.builtin.apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker APT repository
+      ansible.builtin.apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+
+    - name: Install docker
+      ansible.builtin.apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+        state: present
+        update_cache: yes
+
+    - name: Add ubuntu user to docker group
+      ansible.builtin.user:
+        name: ubuntu
+        groups: docker
+        append: yes
+      ignore_errors: true
+
+    #### Install kubectl (latest stable)
+    - name: Download kubectl
+      ansible.builtin.get_url:
+        url: "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+        dest: /usr/local/bin/kubectl
+        mode: "0755"
+      register: kubectl_download
+      failed_when: kubectl_download is failed and kubectl_download.msg is not defined
+
+    #### Install eksctl
+    - name: Download eksctl
+      ansible.builtin.get_url:
+        url: https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz
+        dest: /tmp/eksctl.tar.gz
+        mode: "0644"
+
+    - name: Extract eksctl
+      ansible.builtin.unarchive:
+        src: /tmp/eksctl.tar.gz
+        dest: /tmp
+        remote_src: yes
+
+    - name: Move eksctl to /usr/local/bin
+      ansible.builtin.command:
+        cmd: mv /tmp/eksctl /usr/local/bin/eksctl
+      args:
+        creates: /usr/local/bin/eksctl
+
+    - name: Ensure eksctl is executable
+      ansible.builtin.file:
+        path: /usr/local/bin/eksctl
+        mode: "0755"
+
+    #### Install Jenkins (via official repository)
+    - name: Install OpenJDK 17 (Jenkins prereq)
+      ansible.builtin.apt:
+        name: openjdk-17-jdk
+        state: present
+        update_cache: yes
+
+    - name: Add Jenkins apt key
+      ansible.builtin.apt_key:
+        url: "{{ jenkins_repo_key_url }}"
+        state: present
+
+    - name: Add Jenkins apt repo
+      ansible.builtin.apt_repository:
+        repo: "deb https://pkg.jenkins.io/debian-stable binary/"
+        state: present
+
+    - name: Update apt and install Jenkins
+      ansible.builtin.apt:
+        name: jenkins
+        state: present
+        update_cache: yes
+
+    - name: Ensure Jenkins is started and enabled
+      ansible.builtin.systemd:
+        name: jenkins
+        state: started
+        enabled: yes
