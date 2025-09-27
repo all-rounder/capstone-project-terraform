@@ -31,7 +31,10 @@ terraform init && terraform apply -var 'key_name=...' -var 'allowed_ssh_cidr=<YO
 
 # Ansible
 
+```
+sudo apt install ansible-core
 ansible-pull -U https://github.com/all-rounder/capstone-project-ansible.git bastion_setup.yml
+```
 
 # Parameters
 
@@ -62,16 +65,47 @@ ansible-pull -U https://github.com/all-rounder/capstone-project-ansible.git bast
 
 # Load tests
 
-
-
 # Issues
 
 - cc-ansible module not working
 
   ```
-  $ sudo cat /var/log/cloud-init.log
+  # Captures the output from each stage of cloud-init when it runs.
+  $ less /var/log/cloud-init-output.log
 
   ...
   log_util.py[WARNING]: Running module ansible (<module 'cloudinit.config.cc_ansible' from '/usr/lib/python3/dist-packages/cloudinit/config/cc_ansible.py'>) failed
   Cloud-init v. 25.1.4-0ubuntu0~24.04.1 finished
+
+  # Very detailed log with debugging output, describing each action taken.
+  $ less /var/log/cloud-init.log
+  ```
+
+- addons/main.tf
+
+  I need to run `helm repo update` mannually, otherwise it throws errors
+
+  ```
+  │ Error: could not download chart: no cached repo found. (try 'helm repo update'): open C:\Users\ANDY'S~1\AppData\Local\Temp\helm\repository\grafana-index.yaml: The system cannot find the file specified.
+  │
+  │   with helm_release.alb_controller,
+  │   on main.tf line 20, in resource "helm_release" "alb_controller":
+  │   20: resource "helm_release" "alb_controller" {
+  │
+  ╵
+  ╷
+  │ Error: could not download chart: no cached repo found. (try 'helm repo update'): open C:\Users\ANDY'S~1\AppData\Local\Temp\helm\repository\grafana-index.yaml: The system cannot find the file specified.
+  │
+  │   with helm_release.prometheus_stack,
+  │   on main.tf line 40, in resource "helm_release" "prometheus_stack":
+  │   40: resource "helm_release" "prometheus_stack" {
+  │
+  ╵
+  ╷
+  │ Error: could not download chart: path "./helm-chart" not found
+  │
+  │   with helm_release.online_boutique,
+  │   on main.tf line 63, in resource "helm_release" "online_boutique":
+  │   63: resource "helm_release" "online_boutique" {
+
   ```

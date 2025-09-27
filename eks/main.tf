@@ -132,7 +132,7 @@ resource "aws_eks_node_group" "spot" {
   }
 
   capacity_type = "SPOT"
-  instance_types = ["t3.medium"]
+  instance_types = ["m5.large"]
   disk_size      = 20
 
   tags = merge(local.tags, { Name = "${local.name_prefix}-spot-ng" })

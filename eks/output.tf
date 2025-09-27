@@ -23,11 +23,6 @@ output "cluster_oidc_issuer" {
   value       = aws_eks_cluster.this.identity[0].oidc[0].issuer
 }
 
-output "node_group_role_arn" {
-  description = "IAM role ARN for worker node group(s)"
-  value       = aws_iam_role.nodegroup.arn
-}
-
 output "vpc_id" {
   description = "VPC ID where the EKS cluster resides"
   value       = data.terraform_remote_state.vpc.outputs.vpc_id

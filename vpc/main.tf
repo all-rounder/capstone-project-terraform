@@ -19,7 +19,14 @@ resource "aws_subnet" "public" {
   cidr_block        = each.value
   availability_zone = length(var.availability_zones) >= 3 ? var.availability_zones[tonumber(each.key)] : null
   map_public_ip_on_launch = true
-  tags = merge(local.tags, { Name = "${local.name_prefix}-public-${each.key}" , Tier = "public" })
+  tags = merge(
+    local.tags,
+    {
+      Name                       = "${local.name_prefix}-public-${each.key}"
+      Tier                       = "public"
+      "kubernetes.io/role/elb"   = "1"   # Allow public LoadBalancer
+    }
+  )
 }
 
 # Private subnets (3)
@@ -29,7 +36,14 @@ resource "aws_subnet" "private" {
   cidr_block        = each.value
   availability_zone = length(var.availability_zones) >= 3 ? var.availability_zones[tonumber(each.key)] : null
   map_public_ip_on_launch = false
-  tags = merge(local.tags, { Name = "${local.name_prefix}-private-${each.key}" , Tier = "private" })
+  tags = merge(
+    local.tags,
+    {
+      Name                             = "${local.name_prefix}-private-${each.key}"
+      Tier                             = "private"
+      "kubernetes.io/role/internal-elb" = "1"   # Allow internal LoadBalancer
+    }
+  )
 }
 
 # IGW
